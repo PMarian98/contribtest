@@ -4,6 +4,8 @@
 # the generated `output` should be the same as `test/expected_output`
 
 import os
+import sys
+import json
 import logging
 import jinja2
 
@@ -18,7 +20,7 @@ def list_files(folder_path):
         yield os.path.join(folder_path, name)
 
 def read_file(file_path):
-    with open(file_path, 'rb') as f:
+    with open(file_path, 'rt') as f:
         raw_metadata = ""
         for line in f:
             if line.strip() == '---':
@@ -31,18 +33,21 @@ def read_file(file_path):
 
 def write_output(name, html):
     # TODO should not use sys.argv here, it breaks encapsulation
-    with open(os.path.join(sys.argv[2], name+'.html')) as f:
+    with open('.\\test\\'+os.path.join(sys.argv[2], name+'.html'),'w') as f:
         f.write(html)
 
 def generate_site(folder_path):
     log.info("Generating site from %r", folder_path)
-    jinja_env = jinja2.Environment(loader=FileSystemLoader(folder_path + 'layout'))
+    jinja2_env = jinja2.Environment(loader=jinja2.FileSystemLoader(folder_path + '\layout'))
     for file_path in list_files(folder_path):
         metadata, content = read_file(file_path)
-        template_name = metadata['template']
-        template = jinja_env.get_template(template_name)
+        template_name = metadata['layout']
+        template = jinja2_env.get_template(template_name)
         data = dict(metadata, content=content)
-        html = template(**data)
+        html = template.render(**data)
+        # extrag numele pentru fisier din file_path 
+        index = file_path.index('\\') + 1
+        name = file_path[index:].strip('rst').strip('.')
         write_output(name, html)
         log.info("Writing %r with template %r", name, template_name)
 
